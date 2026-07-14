@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>世界日記</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600&family=Noto+Serif+TC:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <header class="brand">
+      <p class="brand-kicker">TTC WORLD</p>
+      <h1>世界日記</h1>
+    </header>
+    <nav class="day-list" id="day-list" aria-label="日記目錄"></nav>
+  </aside>
+  <div class="main">
+    <header class="toolbar">
+      <button type="button" class="menu-btn" id="menu-btn" aria-label="開啟目錄" aria-expanded="false">目錄</button>
+      <p class="toolbar-title" id="toolbar-title">載入中…</p>
+    </header>
+    <div class="reader-wrap">
+      <article class="reader" id="content" aria-live="polite"></article>
+      <nav class="tick-nav" id="tick-nav" aria-label="tick 錨點" hidden></nav>
+    </div>
+  </div>
+  </div>
+  <div class="overlay" id="overlay" hidden></div>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
