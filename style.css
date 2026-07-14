@@ -6,7 +6,7 @@
   --ink-soft: #5c534a;
   --accent: #8b4d3b;
   --line: #ddd4c6;
-  --tick-bg: #f8f4ed;
+  --time-bg: #f8f4ed;
   --shadow: 0 12px 40px rgba(42, 37, 32, 0.08);
   --font-ui: "Noto Sans TC", system-ui, sans-serif;
   --font-body: "Noto Serif TC", "Noto Sans TC", serif;
@@ -211,11 +211,11 @@ body {
   overflow-wrap: anywhere;
 }
 
-.reader h2.tick-heading {
+.reader h2.time-heading {
   margin-top: clamp(1.75rem, 5vw, 2.5rem);
   padding: clamp(0.45rem, 1.5vw, 0.55rem) clamp(0.65rem, 2vw, 0.85rem);
   border-radius: 0.5rem;
-  background: var(--tick-bg);
+  background: var(--time-bg);
   scroll-margin-top: calc(var(--toolbar-height) + 0.75rem);
 }
 
