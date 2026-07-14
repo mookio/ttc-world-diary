@@ -1,34 +1,43 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>世界日記</title>
+  <meta name="theme-color" content="#efe9df">
+  <title>TTC 世界日記</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;600&family=Noto+Serif+TC:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="layout">
-  <aside class="sidebar" id="sidebar">
-    <header class="brand">
-      <p class="brand-kicker">TTC WORLD</p>
-      <h1>世界日記</h1>
-    </header>
-    <nav class="day-list" id="day-list" aria-label="日記目錄"></nav>
-  </aside>
-  <div class="main">
-    <header class="toolbar">
-      <button type="button" class="menu-btn" id="menu-btn" aria-label="開啟目錄" aria-expanded="false">目錄</button>
-      <p class="toolbar-title" id="toolbar-title">載入中…</p>
-    </header>
-    <div class="reader-wrap">
-      <article class="reader" id="content" aria-live="polite"></article>
-    </div>
+  <a class="skip-link" href="#content">跳到日記正文</a>
+
+  <div class="app-shell">
+    <aside class="library" id="library" aria-label="世界日記目錄">
+      <header class="library-header">
+        <p class="kicker">TTC WORLD</p>
+        <h1>世界日記</h1>
+        <p>把這個世界每天留下的片段，照時間收在一起。</p>
+      </header>
+      <nav class="day-list" id="day-list" aria-label="選擇日記"></nav>
+    </aside>
+
+    <main class="main">
+      <header class="reader-bar">
+        <button class="menu-button" id="menu-button" type="button" aria-controls="library" aria-expanded="false">目錄</button>
+        <p id="reader-label">載入中…</p>
+      </header>
+
+      <div class="reader-frame">
+        <article class="reader" id="content" aria-live="polite" tabindex="-1">
+          <p class="loading-message">正在整理世界日記…</p>
+        </article>
+      </div>
+    </main>
   </div>
-  </div>
-  <div class="overlay" id="overlay" hidden></div>
+
+  <button class="scrim" id="scrim" type="button" aria-label="關閉目錄" hidden></button>
   <script type="module" src="app.js"></script>
 </body>
 </html>

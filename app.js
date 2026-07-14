@@ -2,359 +2,228 @@
 
 import { marked } from "https://cdn.jsdelivr.net/npm/marked@15.0.7/+esm";
 
-const dayListEl = document.getElementById("day-list");
-const contentEl = document.getElementById("content");
-const toolbarTitleEl = document.getElementById("toolbar-title");
-const sidebarEl = document.getElementById("sidebar");
-const menuBtn = document.getElementById("menu-btn");
-const overlayEl = document.getElementById("overlay");
+const dom = {
+  content: document.getElementById("content"),
+  dayList: document.getElementById("day-list"),
+  library: document.getElementById("library"),
+  menuButton: document.getElementById("menu-button"),
+  readerLabel: document.getElementById("reader-label"),
+  scrim: document.getElementById("scrim"),
+};
 
-let manifest = { days: [] };
-let currentDay = null;
-
-const CHARACTERS = [
+const characters = [
   { id: "misaki", name: "美咲" },
   { id: "ren", name: "渡邊蓮" },
   { id: "yui", name: "結衣" },
-];
+].sort((a, b) => b.name.length - a.name.length);
 
-const CHARACTERS_BY_NAME = [...CHARACTERS].sort((a, b) => b.name.length - a.name.length);
+const characterSections = new Set(["角色內心動機", "說話", "告知對方重要的線索"]);
+const characterNames = characters.map((character) => character.name).join("|");
+const characterLineStart = new RegExp(`^(?:${characterNames})(?:[：:]|\\s*→)`);
+const timeHeading = /^現在時間\s+(\d{1,2}:\d{2})\s*$/;
 
-const CHARACTER_NAME_PATTERN = CHARACTERS_BY_NAME.map((c) => c.name).join("|");
-const CHARACTER_LINE_START_RE = new RegExp(`^(?:${CHARACTER_NAME_PATTERN})(?:[：:]|\\s*→)`);
-
-const CHARACTER_SECTIONS = new Set(["角色內心動機", "說話", "告知對方重要的線索"]);
-const WHITE_SECTIONS = new Set(["說話", "告知對方重要的線索"]);
-const TIME_HEADING = /^現在時間\s+\d{1,2}:\d{2}\s*$/;
+const state = {
+  days: [],
+  activeDay: null,
+  requestId: 0,
+};
 
 marked.setOptions({ gfm: true, breaks: false });
 
-function isTimeHeading(text) {
-  return TIME_HEADING.test((text || "").trim());
+function setLibraryOpen(open) {
+  dom.library.classList.toggle("is-open", open);
+  dom.menuButton.setAttribute("aria-expanded", String(open));
+  dom.scrim.hidden = !open;
+  document.body.classList.toggle("library-open", open);
 }
 
-function resolveCharacter(name) {
-  const trimmed = (name || "").trim();
-  return CHARACTERS.find((c) => c.name === trimmed) || null;
+function selectedDayFromHash() {
+  const day = Number.parseInt(location.hash.replace(/^#/, ""), 10);
+  return Number.isInteger(day) && day > 0 ? day : null;
 }
 
-/** 讓 marked 把每位角色的每一行都變成獨立段落；不修改原文內容。 */
-function prepareMarkdown(md) {
-  const lines = md.split("\n");
-  const out = [];
-  let inSection = false;
+function setSelectedDay(day) {
+  const hash = `#${day}`;
+  if (location.hash !== hash) history.replaceState(null, "", hash);
+}
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (/^### /.test(trimmed)) {
-      inSection = CHARACTER_SECTIONS.has(trimmed.slice(4).trim());
-      out.push(line);
-      continue;
+function characterByName(name) {
+  return characters.find((character) => character.name === name.trim()) || null;
+}
+
+function characterTag(character) {
+  const tag = document.createElement("span");
+  tag.className = `character-tag is-${character.id}`;
+  tag.textContent = character.name;
+  return tag;
+}
+
+function normalizeCharacterLines(markdown) {
+  const output = [];
+  let inCharacterSection = false;
+
+  for (const line of markdown.split("\n")) {
+    const text = line.trim();
+    if (text.startsWith("### ")) {
+      inCharacterSection = characterSections.has(text.slice(4).trim());
+    } else if (text.startsWith("## ")) {
+      inCharacterSection = false;
     }
-    if (/^## /.test(trimmed)) {
-      inSection = false;
-      out.push(line);
-      continue;
+    if (inCharacterSection && characterLineStart.test(text) && output.at(-1) !== "") {
+      output.push("");
     }
-    if (inSection && CHARACTER_LINE_START_RE.test(trimmed)) {
-      if (out.length > 0 && out[out.length - 1] !== "") {
-        out.push("");
-      }
-      out.push(line);
-      continue;
-    }
-    out.push(line);
+    output.push(line);
   }
-
-  return out.join("\n");
+  return output.join("\n");
 }
 
-function charTag(character) {
-  const span = document.createElement("span");
-  span.className = `char-tag char-tag--${character.id}`;
-  span.textContent = character.name;
-  return span;
+function parseCharacterLine(text) {
+  const source = text.trim();
+  for (const speaker of characters) {
+    const directed = source.match(new RegExp(`^${speaker.name}\\s*→\\s*(.+?)[：:]([\\s\\S]*)$`));
+    if (directed) {
+      return {
+        speaker,
+        target: characterByName(directed[1]),
+        targetLabel: directed[1].trim(),
+        body: directed[2].trim(),
+      };
+    }
+    const spoken = source.match(new RegExp(`^${speaker.name}[：:]([\\s\\S]*)$`));
+    if (spoken) return { speaker, target: null, targetLabel: "", body: spoken[1].trim() };
+  }
+  return null;
 }
 
-function makeCharLine(headNodes, bodyText) {
+function characterLine(parsed) {
   const row = document.createElement("p");
-  row.className = "char-line";
+  row.className = "character-line";
 
-  const head = document.createElement("span");
-  head.className = "char-line-head";
-  for (const node of headNodes) {
-    head.appendChild(node);
+  const label = document.createElement("span");
+  label.className = "character-label";
+  label.append(characterTag(parsed.speaker));
+  if (parsed.targetLabel) {
+    label.append(document.createTextNode(" → "));
+    label.append(parsed.target ? characterTag(parsed.target) : document.createTextNode(parsed.targetLabel));
   }
 
   const body = document.createElement("span");
-  body.className = "char-line-body";
-  body.textContent = bodyText;
-
-  row.appendChild(head);
-  row.appendChild(body);
+  body.className = "character-text";
+  body.textContent = parsed.body;
+  row.append(label, body);
   return row;
 }
 
-function buildCharacterLine(line) {
-  const trimmed = line.trim();
-  if (!trimmed) {
-    return null;
+function renderMarkdown(markdown) {
+  const template = document.createElement("template");
+  template.innerHTML = marked.parse(normalizeCharacterLines(markdown));
+
+  for (const heading of template.content.querySelectorAll("h2")) {
+    const match = heading.textContent.trim().match(timeHeading);
+    if (!match) continue;
+    heading.classList.add("time-heading");
+    heading.dataset.time = match[1];
   }
 
-  for (const speaker of CHARACTERS_BY_NAME) {
-    const clueRe = new RegExp(`^${speaker.name}\\s*→\\s*(.+?)[：:]([\\s\\S]*)$`);
-    const clueMatch = trimmed.match(clueRe);
-    if (clueMatch) {
-      const target = resolveCharacter(clueMatch[1]);
-      const headNodes = [charTag(speaker), document.createTextNode(" → ")];
-      if (target) {
-        headNodes.push(charTag(target));
-      } else {
-        headNodes.push(document.createTextNode(clueMatch[1].trim()));
+  for (const heading of template.content.querySelectorAll("h3")) {
+    if (!characterSections.has(heading.textContent.trim())) continue;
+    heading.classList.add("character-section-title");
+    let sibling = heading.nextElementSibling;
+    while (sibling && !/^H[23]$/.test(sibling.tagName)) {
+      const next = sibling.nextElementSibling;
+      if (sibling.tagName === "P") {
+        const parsed = parseCharacterLine(sibling.textContent);
+        if (parsed) sibling.replaceWith(characterLine(parsed));
       }
-      headNodes.push(document.createTextNode("："));
-      return makeCharLine(headNodes, clueMatch[2]);
-    }
-
-    const talkRe = new RegExp(`^${speaker.name}[：:]([\\s\\S]*)$`);
-    const talkMatch = trimmed.match(talkRe);
-    if (talkMatch) {
-      return makeCharLine([charTag(speaker), document.createTextNode("：")], talkMatch[1]);
+      sibling = next;
     }
   }
 
-  const row = document.createElement("p");
-  row.className = "char-line";
-  row.textContent = trimmed;
-  return row;
-}
-
-function paragraphText(node) {
-  return (node.textContent || "").replace(/\r/g, "").trim();
-}
-
-function colorCharacterLines(doc) {
-  for (const h3 of doc.querySelectorAll("h3")) {
-    const section = (h3.textContent || "").trim();
-    if (!CHARACTER_SECTIONS.has(section)) {
-      continue;
-    }
-    let node = h3.nextElementSibling;
-    while (node && node.tagName !== "H2" && node.tagName !== "H3") {
-      const next = node.nextElementSibling;
-      if (node.tagName === "P") {
-        const text = paragraphText(node);
-        const row = buildCharacterLine(text);
-        if (row) {
-          node.parentNode.insertBefore(row, node);
-        }
-        node.parentNode.removeChild(node);
-      }
-      node = next;
-    }
-  }
-}
-
-function insertSectionDividers(doc) {
-  for (const timeH2 of doc.querySelectorAll("h2.time-heading")) {
-    const sectionH3s = [];
-    let node = timeH2.nextElementSibling;
-    while (node && node.tagName !== "H2") {
-      if (node.tagName === "H3") {
-        const title = (node.textContent || "").trim();
-        if (CHARACTER_SECTIONS.has(title)) {
-          sectionH3s.push(node);
-        }
-      }
-      node = node.nextElementSibling;
-    }
-    for (let i = 1; i < sectionH3s.length; i += 1) {
-      const divider = document.createElement("div");
-      divider.className = "char-section-divider";
-      divider.setAttribute("role", "separator");
-      sectionH3s[i].parentNode.insertBefore(divider, sectionH3s[i]);
-    }
-  }
-}
-
-function wrapWhiteSectionBlocks(doc) {
-  for (const h3 of doc.querySelectorAll("h3")) {
-    const title = (h3.textContent || "").trim();
-    if (!WHITE_SECTIONS.has(title)) {
-      continue;
-    }
-
-    const wrapper = document.createElement("div");
-    wrapper.className = "char-section-block";
-
-    let node = h3.nextElementSibling;
-    while (node && node.tagName !== "H2" && node.tagName !== "H3") {
-      if (node.classList?.contains("char-section-divider")) {
-        break;
-      }
-      const next = node.nextElementSibling;
-      wrapper.appendChild(node);
-      node = next;
-    }
-
-    if (wrapper.childNodes.length) {
-      h3.parentNode.insertBefore(wrapper, h3.nextElementSibling);
-    }
-  }
-}
-
-function dayFromHash() {
-  const raw = location.hash.replace(/^#/, "");
-  const n = Number.parseInt(raw, 10);
-  return Number.isFinite(n) && n > 0 ? n : null;
-}
-
-function setHash(day) {
-  const next = `#${day}`;
-  if (location.hash !== next) {
-    history.replaceState(null, "", next);
-  }
-}
-
-function closeSidebar() {
-  sidebarEl.classList.remove("open");
-  document.body.classList.remove("sidebar-open");
-  menuBtn.setAttribute("aria-expanded", "false");
-  overlayEl.hidden = true;
-}
-
-function openSidebar() {
-  sidebarEl.classList.add("open");
-  document.body.classList.add("sidebar-open");
-  menuBtn.setAttribute("aria-expanded", "true");
-  overlayEl.hidden = false;
-}
-
-function slugTimeHeading(headingText) {
-  return headingText
-    .trim()
-    .toLowerCase()
-    .replace(/[^\w\u4e00-\u9fff]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function enhanceHtml(html) {
-  const doc = new DOMParser().parseFromString(html, "text/html");
-
-  for (const h2 of doc.querySelectorAll("h2")) {
-    const text = h2.textContent || "";
-    if (isTimeHeading(text)) {
-      const id = slugTimeHeading(text);
-      if (id) {
-        h2.id = id;
-      }
-      h2.classList.add("time-heading");
-    }
-  }
-
-  const firstH2 = doc.querySelector("h2");
-  if (firstH2 && /^世界日記/.test(firstH2.textContent || "")) {
-    const wrapper = document.createElement("div");
-    wrapper.className = "diary-block";
-    const parent = firstH2.parentNode;
-    let stopAt = null;
-    let node = firstH2;
-    while (node) {
-      const next = node.nextElementSibling;
-      if (node.tagName === "H2" && node !== firstH2 && isTimeHeading(node.textContent || "")) {
-        stopAt = node;
-        break;
-      }
-      wrapper.appendChild(node);
-      node = next;
-    }
-    parent.insertBefore(wrapper, stopAt);
-  }
-
-  colorCharacterLines(doc);
-  insertSectionDividers(doc);
-  wrapWhiteSectionBlocks(doc);
-
-  return doc.body.innerHTML;
+  dom.content.replaceChildren(template.content);
 }
 
 function renderDayList() {
-  dayListEl.innerHTML = "";
-  for (const item of manifest.days) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "day-link";
-    btn.dataset.day = String(item.day);
-    btn.innerHTML = `<span class="day-link-num">世界日記 ${item.day}</span><span class="day-link-title">${item.title}</span>`;
-    btn.addEventListener("click", () => {
-      loadDay(item.day);
-      closeSidebar();
+  const fragment = document.createDocumentFragment();
+  for (const day of state.days) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "day-button";
+    button.dataset.day = String(day.day);
+    button.append(
+      Object.assign(document.createElement("span"), { className: "day-number", textContent: `DAY ${day.day}` }),
+      Object.assign(document.createElement("span"), { className: "day-title", textContent: day.title })
+    );
+    button.addEventListener("click", () => {
+      loadDay(day.day);
+      setLibraryOpen(false);
     });
-    dayListEl.appendChild(btn);
+    fragment.append(button);
   }
+  dom.dayList.replaceChildren(fragment);
 }
 
 function highlightDay(day) {
-  for (const btn of dayListEl.querySelectorAll(".day-link")) {
-    const active = Number(btn.dataset.day) === day;
-    btn.setAttribute("aria-current", active ? "page" : "false");
+  for (const button of dom.dayList.querySelectorAll(".day-button")) {
+    button.setAttribute("aria-current", Number(button.dataset.day) === day ? "page" : "false");
   }
 }
 
-async function loadDay(day) {
-  const item = manifest.days.find((d) => d.day === day);
-  if (!item) {
-    return;
-  }
-  currentDay = day;
-  setHash(day);
-  highlightDay(day);
-  toolbarTitleEl.textContent = `世界日記 ${day} · ${item.title}`;
-  contentEl.innerHTML = "<p>載入中…</p>";
+function showMessage(message, isError = false) {
+  const paragraph = document.createElement("p");
+  paragraph.className = isError ? "error-message" : "loading-message";
+  paragraph.textContent = message;
+  dom.content.replaceChildren(paragraph);
+}
 
-  const res = await fetch(item.file);
-  if (!res.ok) {
-    contentEl.innerHTML = `<p>無法載入 ${item.file}</p>`;
-    return;
+async function loadDay(dayNumber) {
+  const day = state.days.find((item) => item.day === dayNumber);
+  if (!day) return;
+
+  const requestId = ++state.requestId;
+  state.activeDay = day.day;
+  setSelectedDay(day.day);
+  highlightDay(day.day);
+  dom.readerLabel.textContent = `世界日記 ${day.day} · ${day.title}`;
+  document.title = `${day.title}｜TTC 世界日記`;
+  showMessage("正在翻開這一天…");
+
+  try {
+    const response = await fetch(day.file);
+    if (!response.ok) throw new Error(`無法載入 ${day.file}`);
+    const markdown = await response.text();
+    if (requestId !== state.requestId) return;
+    renderMarkdown(markdown);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  } catch (error) {
+    if (requestId !== state.requestId) return;
+    showMessage(error.message || "這篇日記暫時無法讀取。", true);
   }
-  const md = prepareMarkdown(await res.text());
-  const rawHtml = marked.parse(md);
-  contentEl.innerHTML = enhanceHtml(rawHtml);
-  window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
 }
 
 async function init() {
-  menuBtn.addEventListener("click", () => {
-    if (sidebarEl.classList.contains("open")) {
-      closeSidebar();
-    } else {
-      openSidebar();
-    }
-  });
-  overlayEl.addEventListener("click", closeSidebar);
+  dom.menuButton.addEventListener("click", () => setLibraryOpen(!dom.library.classList.contains("is-open")));
+  dom.scrim.addEventListener("click", () => setLibraryOpen(false));
   window.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") {
-      closeSidebar();
-    }
+    if (event.key === "Escape") setLibraryOpen(false);
   });
   window.addEventListener("hashchange", () => {
-    const day = dayFromHash();
-    if (day && day !== currentDay) {
-      loadDay(day);
-    }
+    const requested = selectedDayFromHash();
+    if (requested) loadDay(requested);
   });
 
-  const res = await fetch("manifest.json");
-  if (!res.ok) {
-    contentEl.innerHTML = "<p>找不到 manifest.json，請先執行 novel/build.py --sync-web</p>";
-    return;
+  try {
+    const response = await fetch("manifest.json");
+    if (!response.ok) throw new Error("找不到世界日記目錄。");
+    const manifest = await response.json();
+    state.days = Array.isArray(manifest.days) ? manifest.days : [];
+    if (!state.days.length) throw new Error("目前沒有可以閱讀的日記。");
+    renderDayList();
+    const requested = selectedDayFromHash();
+    await loadDay(state.days.some((day) => day.day === requested) ? requested : state.days[0].day);
+  } catch (error) {
+    dom.readerLabel.textContent = "世界日記";
+    showMessage(error.message || "世界日記載入失敗。", true);
   }
-  manifest = await res.json();
-  renderDayList();
-
-  const requested = dayFromHash();
-  const fallback = manifest.days[0]?.day ?? 1;
-  await loadDay(requested ?? fallback);
 }
 
 init();
