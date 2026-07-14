@@ -57,7 +57,7 @@ function prepareMarkdown(md) {
       out.push(line);
       continue;
     }
-    if (inSection && CHARACTER_LINE_START_RE.test(trimmed)) {
+    if (inSection && (CHARACTER_LINE_START_RE.test(trimmed) || /\s→\s/.test(trimmed))) {
       if (out.length > 0 && out[out.length - 1] !== "") {
         out.push("");
       }
@@ -70,16 +70,28 @@ function prepareMarkdown(md) {
   return out.join("\n");
 }
 
+function splitCharacterText(text) {
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return [];
+  }
+  // 線索格式「A → B：…」不可在 B 的名字處再切開
+  if (/\s→\s/.test(trimmed)) {
+    return [trimmed];
+  }
+  return trimmed
+    .split(CHARACTER_LINE_SPLIT_RE)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 function linesFromParagraph(node) {
   const html = node.innerHTML || "";
   const chunks = /<br\s*\/?>/i.test(html)
     ? html.split(/<br\s*\/?>/i).map((part) => part.replace(/<[^>]+>/g, "").trim())
     : [(node.textContent || "").replace(/\r/g, "").trim()];
 
-  return chunks
-    .flatMap((text) => text.split(CHARACTER_LINE_SPLIT_RE))
-    .map((line) => line.trim())
-    .filter(Boolean);
+  return chunks.flatMap((text) => splitCharacterText(text));
 }
 
 function charTag(character) {
