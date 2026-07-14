@@ -243,7 +243,7 @@ async function init() {
   updateEditionButtons();
 
   try {
-    const response = await fetch("manifest.json");
+    const response = await fetch("manifest.json?v=novel-1");
     if (!response.ok) throw new Error("找不到世界日記目錄。");
     const manifest = await response.json();
     state.days = Array.isArray(manifest.days) ? manifest.days : [];
