@@ -96,6 +96,7 @@ function buildCharacterLine(line) {
   }
 
   const row = document.createElement("p");
+  row.className = "char-line";
 
   for (const speaker of CHARACTERS_BY_NAME) {
     const clueRe = new RegExp(`^${speaker.name}\\s*→\\s*(.+?)[：:]([\\s\\S]*)$`);

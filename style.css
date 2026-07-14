@@ -255,11 +255,11 @@ body {
   border-radius: 0.45rem;
 }
 
-.char-section-block p {
-  margin-bottom: 0.65rem;
+.char-section-block p.char-line {
+  margin-bottom: 0.5rem;
 }
 
-.char-section-block p:last-child {
+.char-section-block p.char-line:last-child {
   margin-bottom: 0;
 }
 
@@ -270,16 +270,27 @@ body {
   overflow-wrap: anywhere;
 }
 
+.reader p.char-line {
+  text-align: left;
+  text-justify: auto;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+  margin: 0 0 0.5rem;
+  line-height: 1.65;
+}
+
 .reader .char-tag {
-  display: inline-block;
-  padding: 0.05rem 0.4rem;
+  display: inline;
+  padding: 0.08rem 0.38rem;
   border-radius: 0.3rem;
   font-family: var(--font-ui);
   font-size: 0.88em;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: inherit;
   vertical-align: baseline;
   white-space: nowrap;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
 .reader .char-tag--misaki {
