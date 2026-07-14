@@ -22,6 +22,8 @@ const CHARACTERS_BY_NAME = [...CHARACTERS].sort((a, b) => b.name.length - a.name
 
 const CHARACTER_SECTIONS = new Set(["角色內心動機", "說話", "告知對方重要的線索"]);
 
+const WHITE_SECTIONS = new Set(["說話", "告知對方重要的線索"]);
+
 marked.setOptions({ gfm: true, breaks: true });
 
 function resolveCharacter(name) {
@@ -127,6 +129,32 @@ function insertSectionDividers(doc) {
   }
 }
 
+function wrapWhiteSectionBlocks(doc) {
+  for (const h3 of doc.querySelectorAll("h3")) {
+    const title = (h3.textContent || "").trim();
+    if (!WHITE_SECTIONS.has(title)) {
+      continue;
+    }
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "char-section-block";
+
+    let node = h3.nextElementSibling;
+    while (node && node.tagName !== "H2" && node.tagName !== "H3") {
+      if (node.classList?.contains("char-section-divider")) {
+        break;
+      }
+      const next = node.nextElementSibling;
+      wrapper.appendChild(node);
+      node = next;
+    }
+
+    if (wrapper.childNodes.length) {
+      h3.parentNode.insertBefore(wrapper, h3.nextElementSibling);
+    }
+  }
+}
+
 function dayFromHash() {
   const raw = location.hash.replace(/^#/, "");
   const n = Number.parseInt(raw, 10);
@@ -197,6 +225,7 @@ function enhanceHtml(html) {
 
   colorCharacterLines(doc);
   insertSectionDividers(doc);
+  wrapWhiteSectionBlocks(doc);
 
   return doc.body.innerHTML;
 }

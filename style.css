@@ -246,6 +246,20 @@ body {
   background-size: 12px 1px;
 }
 
+.char-section-block {
+  background: #fff;
+  padding: 0.35rem 0.75rem 0.65rem;
+  border-radius: 0.45rem;
+}
+
+.char-section-block p {
+  margin-bottom: 0.65rem;
+}
+
+.char-section-block p:last-child {
+  margin-bottom: 0;
+}
+
 .reader p {
   margin: 0 0 1rem;
   text-align: justify;
