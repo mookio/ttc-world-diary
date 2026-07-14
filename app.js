@@ -13,22 +13,21 @@ let manifest = { days: [] };
 let currentDay = null;
 
 const CHARACTERS = [
-  { id: "misaki", name: "美咲", color: "#e0759a" },
-  { id: "ren", name: "渡邊蓮", color: "#65a854" },
-  { id: "yui", name: "結衣", color: "#3f9fb5" },
+  { id: "misaki", name: "美咲" },
+  { id: "ren", name: "渡邊蓮" },
+  { id: "yui", name: "結衣" },
 ];
 
 const CHARACTERS_BY_NAME = [...CHARACTERS].sort((a, b) => b.name.length - a.name.length);
 
 const CHARACTER_NAME_PATTERN = CHARACTERS_BY_NAME.map((c) => c.name).join("|");
-const CHARACTER_LINE_START_RE = new RegExp(`^(?:${CHARACTER_NAME_PATTERN})[：:]`);
-const CHARACTER_LINE_SPLIT_RE = new RegExp(`(?=(?:${CHARACTER_NAME_PATTERN})[：:])`);
+const CHARACTER_LINE_START_RE = new RegExp(`^(?:${CHARACTER_NAME_PATTERN})(?:[：:]|\\s*→)`);
 
 const CHARACTER_SECTIONS = new Set(["角色內心動機", "說話", "告知對方重要的線索"]);
-
 const WHITE_SECTIONS = new Set(["說話", "告知對方重要的線索"]);
-
 const TIME_HEADING = /^現在時間\s+\d{1,2}:\d{2}\s*$/;
+
+marked.setOptions({ gfm: true, breaks: false });
 
 function isTimeHeading(text) {
   return TIME_HEADING.test((text || "").trim());
@@ -39,6 +38,7 @@ function resolveCharacter(name) {
   return CHARACTERS.find((c) => c.name === trimmed) || null;
 }
 
+/** 讓 marked 把每位角色的每一行都變成獨立段落；不修改原文內容。 */
 function prepareMarkdown(md) {
   const lines = md.split("\n");
   const out = [];
@@ -47,8 +47,7 @@ function prepareMarkdown(md) {
   for (const line of lines) {
     const trimmed = line.trim();
     if (/^### /.test(trimmed)) {
-      const title = trimmed.slice(4).trim();
-      inSection = CHARACTER_SECTIONS.has(title);
+      inSection = CHARACTER_SECTIONS.has(trimmed.slice(4).trim());
       out.push(line);
       continue;
     }
@@ -57,7 +56,7 @@ function prepareMarkdown(md) {
       out.push(line);
       continue;
     }
-    if (inSection && (CHARACTER_LINE_START_RE.test(trimmed) || /\s→\s/.test(trimmed))) {
+    if (inSection && CHARACTER_LINE_START_RE.test(trimmed)) {
       if (out.length > 0 && out[out.length - 1] !== "") {
         out.push("");
       }
@@ -70,35 +69,30 @@ function prepareMarkdown(md) {
   return out.join("\n");
 }
 
-function splitCharacterText(text) {
-  const trimmed = text.trim();
-  if (!trimmed) {
-    return [];
-  }
-  // 線索格式「A → B：…」不可在 B 的名字處再切開
-  if (/\s→\s/.test(trimmed)) {
-    return [trimmed];
-  }
-  return trimmed
-    .split(CHARACTER_LINE_SPLIT_RE)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function linesFromParagraph(node) {
-  const html = node.innerHTML || "";
-  const chunks = /<br\s*\/?>/i.test(html)
-    ? html.split(/<br\s*\/?>/i).map((part) => part.replace(/<[^>]+>/g, "").trim())
-    : [(node.textContent || "").replace(/\r/g, "").trim()];
-
-  return chunks.flatMap((text) => splitCharacterText(text));
-}
-
 function charTag(character) {
   const span = document.createElement("span");
   span.className = `char-tag char-tag--${character.id}`;
   span.textContent = character.name;
   return span;
+}
+
+function makeCharLine(headNodes, bodyText) {
+  const row = document.createElement("p");
+  row.className = "char-line";
+
+  const head = document.createElement("span");
+  head.className = "char-line-head";
+  for (const node of headNodes) {
+    head.appendChild(node);
+  }
+
+  const body = document.createElement("span");
+  body.className = "char-line-body";
+  body.textContent = bodyText;
+
+  row.appendChild(head);
+  row.appendChild(body);
+  return row;
 }
 
 function buildCharacterLine(line) {
@@ -107,36 +101,36 @@ function buildCharacterLine(line) {
     return null;
   }
 
-  const row = document.createElement("p");
-  row.className = "char-line";
-
   for (const speaker of CHARACTERS_BY_NAME) {
     const clueRe = new RegExp(`^${speaker.name}\\s*→\\s*(.+?)[：:]([\\s\\S]*)$`);
     const clueMatch = trimmed.match(clueRe);
     if (clueMatch) {
       const target = resolveCharacter(clueMatch[1]);
-      row.appendChild(charTag(speaker));
-      row.appendChild(document.createTextNode(" → "));
+      const headNodes = [charTag(speaker), document.createTextNode(" → ")];
       if (target) {
-        row.appendChild(charTag(target));
+        headNodes.push(charTag(target));
       } else {
-        row.append(document.createTextNode(clueMatch[1].trim()));
+        headNodes.push(document.createTextNode(clueMatch[1].trim()));
       }
-      row.appendChild(document.createTextNode(`：${clueMatch[2]}`));
-      return row;
+      headNodes.push(document.createTextNode("："));
+      return makeCharLine(headNodes, clueMatch[2]);
     }
 
     const talkRe = new RegExp(`^${speaker.name}[：:]([\\s\\S]*)$`);
     const talkMatch = trimmed.match(talkRe);
     if (talkMatch) {
-      row.appendChild(charTag(speaker));
-      row.appendChild(document.createTextNode(`：${talkMatch[1]}`));
-      return row;
+      return makeCharLine([charTag(speaker), document.createTextNode("：")], talkMatch[1]);
     }
   }
 
+  const row = document.createElement("p");
+  row.className = "char-line";
   row.textContent = trimmed;
   return row;
+}
+
+function paragraphText(node) {
+  return (node.textContent || "").replace(/\r/g, "").trim();
 }
 
 function colorCharacterLines(doc) {
@@ -149,15 +143,12 @@ function colorCharacterLines(doc) {
     while (node && node.tagName !== "H2" && node.tagName !== "H3") {
       const next = node.nextElementSibling;
       if (node.tagName === "P") {
-        const lines = linesFromParagraph(node);
-        const parent = node.parentNode;
-        for (const line of lines) {
-          const row = buildCharacterLine(line);
-          if (row) {
-            parent.insertBefore(row, node);
-          }
+        const text = paragraphText(node);
+        const row = buildCharacterLine(text);
+        if (row) {
+          node.parentNode.insertBefore(row, node);
         }
-        parent.removeChild(node);
+        node.parentNode.removeChild(node);
       }
       node = next;
     }
@@ -263,7 +254,7 @@ function enhanceHtml(html) {
 
   const firstH2 = doc.querySelector("h2");
   if (firstH2 && /^世界日記/.test(firstH2.textContent || "")) {
-    const wrapper = doc.createElement("div");
+    const wrapper = document.createElement("div");
     wrapper.className = "diary-block";
     const parent = firstH2.parentNode;
     let stopAt = null;

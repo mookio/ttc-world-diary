@@ -271,12 +271,25 @@ body {
 }
 
 .reader p.char-line {
+  display: flex;
+  align-items: baseline;
+  gap: 0;
   text-align: left;
   text-justify: auto;
-  overflow-wrap: break-word;
-  word-break: keep-all;
+  overflow-wrap: normal;
+  word-break: normal;
   margin: 0 0 0.5rem;
   line-height: 1.65;
+}
+
+.char-line-head {
+  flex: none;
+  white-space: nowrap;
+}
+
+.char-line-body {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .reader .char-tag {
@@ -288,9 +301,6 @@ body {
   font-weight: 600;
   line-height: inherit;
   vertical-align: baseline;
-  white-space: nowrap;
-  -webkit-box-decoration-break: clone;
-  box-decoration-break: clone;
 }
 
 .reader .char-tag--misaki {
