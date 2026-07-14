@@ -117,6 +117,32 @@ button { font: inherit; }
   white-space: nowrap;
 }
 
+.edition-switch {
+  display: inline-flex;
+  flex: none;
+  margin-left: auto;
+  padding: 0.18rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.edition-switch button {
+  padding: 0.34rem 0.68rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: 500 0.78rem/1 var(--sans);
+  cursor: pointer;
+}
+
+.edition-switch button[aria-pressed="true"] {
+  background: var(--paper);
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(55, 43, 34, 0.12);
+}
+
 .menu-button {
   display: none;
   flex: none;
@@ -220,6 +246,9 @@ body.library-open { overflow: hidden; }
 }
 
 @media (max-width: 32rem) {
+  .reader-bar { gap: 0.35rem; padding-inline: 0.7rem; }
+  .reader-bar p { font-size: 0.76rem; }
+  .edition-switch button { padding-inline: 0.55rem; }
   .reader { font-size: 0.98rem; }
   .character-line { grid-template-columns: 1fr; gap: 0.25rem; }
 }

@@ -3,122 +3,148 @@
     {
       "day": 1,
       "title": "理學部的異樣與邏輯的碰撞",
-      "file": "days/day1.md"
+      "file": "days/day1.md",
+      "original_file": "days/day1.md",
+      "novel_file": "novel/day1.md"
     },
     {
       "day": 2,
       "title": "隱形的線與邏輯的斷層",
-      "file": "days/day2.md"
+      "file": "days/day2.md",
+      "original_file": "days/day2.md",
+      "novel_file": "novel/day2.md"
     },
     {
       "day": 3,
       "title": "直覺的飛躍與邏輯的壁壘",
-      "file": "days/day3.md"
+      "file": "days/day3.md",
+      "original_file": "days/day3.md"
     },
     {
       "day": 4,
       "title": "繃緊的線與飛躍的邏輯",
-      "file": "days/day4.md"
+      "file": "days/day4.md",
+      "original_file": "days/day4.md"
     },
     {
       "day": 5,
       "title": "雨中的視線與繃緊的線",
-      "file": "days/day5.md"
+      "file": "days/day5.md",
+      "original_file": "days/day5.md"
     },
     {
       "day": 6,
       "title": "不自然的同步與殘留的痕跡",
-      "file": "days/day6.md"
+      "file": "days/day6.md",
+      "original_file": "days/day6.md"
     },
     {
       "day": 7,
       "title": "同步的異常與遲緩的驗算",
-      "file": "days/day7.md"
+      "file": "days/day7.md",
+      "original_file": "days/day7.md"
     },
     {
       "day": 8,
       "title": "雨中的違和感與不完全閉合的側門",
-      "file": "days/day8.md"
+      "file": "days/day8.md",
+      "original_file": "days/day8.md"
     },
     {
       "day": 9,
       "title": "雨中的違和感與被遮蔽的正確",
-      "file": "days/day9.md"
+      "file": "days/day9.md",
+      "original_file": "days/day9.md"
     },
     {
       "day": 10,
       "title": "雨中的違和感與不自然之物",
-      "file": "days/day10.md"
+      "file": "days/day10.md",
+      "original_file": "days/day10.md"
     },
     {
       "day": 11,
       "title": "碎片與矛盾的交匯",
-      "file": "days/day11.md"
+      "file": "days/day11.md",
+      "original_file": "days/day11.md"
     },
     {
       "day": 12,
       "title": "重複的折痕與冷冽的剔除",
-      "file": "days/day12.md"
+      "file": "days/day12.md",
+      "original_file": "days/day12.md"
     },
     {
       "day": 13,
       "title": "日常中的違和感與追尋",
-      "file": "days/day13.md"
+      "file": "days/day13.md",
+      "original_file": "days/day13.md"
     },
     {
       "day": 14,
       "title": "違和感的碎片與日常的飢餓",
-      "file": "days/day14.md"
+      "file": "days/day14.md",
+      "original_file": "days/day14.md"
     },
     {
       "day": 15,
       "title": "斷層的餘韻與規律的追尋",
-      "file": "days/day15.md"
+      "file": "days/day15.md",
+      "original_file": "days/day15.md"
     },
     {
       "day": 16,
       "title": "違和感的蒐集與日常的交錯",
-      "file": "days/day16.md"
+      "file": "days/day16.md",
+      "original_file": "days/day16.md"
     },
     {
       "day": 17,
       "title": "強行連結的爭執與雨中的違和感",
-      "file": "days/day17.md"
+      "file": "days/day17.md",
+      "original_file": "days/day17.md"
     },
     {
       "day": 18,
       "title": "錯位的節奏與強行連結的妄想",
-      "file": "days/day18.md"
+      "file": "days/day18.md",
+      "original_file": "days/day18.md"
     },
     {
       "day": 19,
       "title": "缺失的拍子與反轉的邏輯",
-      "file": "days/day19.md"
+      "file": "days/day19.md",
+      "original_file": "days/day19.md"
     },
     {
       "day": 20,
       "title": "反轉的妄想與空白的驗算",
-      "file": "days/day20.md"
+      "file": "days/day20.md",
+      "original_file": "days/day20.md"
     },
     {
       "day": 21,
       "title": "直覺的飛躍與邏輯的牆",
-      "file": "days/day21.md"
+      "file": "days/day21.md",
+      "original_file": "days/day21.md"
     },
     {
       "day": 22,
       "title": "錯位的碎片與反轉的直覺",
-      "file": "days/day22.md"
+      "file": "days/day22.md",
+      "original_file": "days/day22.md"
     },
     {
       "day": 23,
       "title": "錯位的共鳴與靜謐的偏移",
-      "file": "days/day23.md"
+      "file": "days/day23.md",
+      "original_file": "days/day23.md"
     },
     {
       "day": 24,
       "title": "錯位的感知與重疊的殘像",
-      "file": "days/day24.md"
+      "file": "days/day24.md",
+      "original_file": "days/day24.md"
     }
   ]
 }

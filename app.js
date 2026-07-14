@@ -5,6 +5,7 @@ import { marked } from "https://cdn.jsdelivr.net/npm/marked@15.0.7/+esm";
 const dom = {
   content: document.getElementById("content"),
   dayList: document.getElementById("day-list"),
+  editionButtons: [...document.querySelectorAll("[data-edition]")],
   library: document.getElementById("library"),
   menuButton: document.getElementById("menu-button"),
   readerLabel: document.getElementById("reader-label"),
@@ -25,6 +26,7 @@ const timeHeading = /^現在時間\s+(\d{1,2}:\d{2})\s*$/;
 const state = {
   days: [],
   activeDay: null,
+  edition: "novel",
   requestId: 0,
 };
 
@@ -175,21 +177,40 @@ function showMessage(message, isError = false) {
   dom.content.replaceChildren(paragraph);
 }
 
+function editionLabel() {
+  return state.edition === "original" ? "原文版" : "小說版";
+}
+
+function updateEditionButtons(day = null) {
+  for (const button of dom.editionButtons) {
+    button.disabled = button.dataset.edition === "novel" && day !== null && !day.novel_file;
+    button.setAttribute("aria-pressed", String(button.dataset.edition === state.edition));
+  }
+}
+
+function dayFile(day) {
+  if (state.edition === "original") return day.original_file || day.file;
+  return day.novel_file || day.file;
+}
+
 async function loadDay(dayNumber) {
   const day = state.days.find((item) => item.day === dayNumber);
   if (!day) return;
 
   const requestId = ++state.requestId;
   state.activeDay = day.day;
+  if (state.edition === "novel" && !day.novel_file) state.edition = "original";
+  updateEditionButtons(day);
   setSelectedDay(day.day);
   highlightDay(day.day);
-  dom.readerLabel.textContent = `世界日記 ${day.day} · ${day.title}`;
-  document.title = `${day.title}｜TTC 世界日記`;
+  dom.readerLabel.textContent = `${editionLabel()} ${day.day} · ${day.title}`;
+  document.title = `${day.title}｜${editionLabel()}｜TTC 世界日記`;
   showMessage("正在翻開這一天…");
 
   try {
-    const response = await fetch(day.file);
-    if (!response.ok) throw new Error(`無法載入 ${day.file}`);
+    const file = dayFile(day);
+    const response = await fetch(file);
+    if (!response.ok) throw new Error(`無法載入 ${file}`);
     const markdown = await response.text();
     if (requestId !== state.requestId) return;
     renderMarkdown(markdown);
@@ -210,6 +231,16 @@ async function init() {
     const requested = selectedDayFromHash();
     if (requested) loadDay(requested);
   });
+  for (const button of dom.editionButtons) {
+    button.addEventListener("click", () => {
+      const edition = button.dataset.edition;
+      if (edition === state.edition || !["novel", "original"].includes(edition)) return;
+      state.edition = edition;
+      updateEditionButtons();
+      if (state.activeDay !== null) loadDay(state.activeDay);
+    });
+  }
+  updateEditionButtons();
 
   try {
     const response = await fetch("manifest.json");
