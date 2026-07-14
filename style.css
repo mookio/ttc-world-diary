@@ -23,6 +23,9 @@
   --text-ui-sm: clamp(0.72rem, 0.2vw + 0.66rem, 0.75rem);
   --text-ui-md: clamp(0.84rem, 0.3vw + 0.78rem, 0.9rem);
   --layout-break: 56.25rem;
+  --char-misaki: #e0759a;
+  --char-ren: #65a854;
+  --char-yui: #3f9fb5;
 }
 
 *,
@@ -267,7 +270,7 @@ body {
   overflow-wrap: anywhere;
 }
 
-.char-tag {
+.reader .char-tag {
   display: inline-block;
   padding: 0.05rem 0.4rem;
   border-radius: 0.3rem;
@@ -276,20 +279,21 @@ body {
   font-weight: 600;
   line-height: 1.4;
   vertical-align: baseline;
+  white-space: nowrap;
 }
 
-.char-tag--misaki {
-  background: #e0759a;
+.reader .char-tag--misaki {
+  background: var(--char-misaki);
   color: #fff;
 }
 
-.char-tag--ren {
-  background: #65a854;
+.reader .char-tag--ren {
+  background: var(--char-ren);
   color: #fff;
 }
 
-.char-tag--yui {
-  background: #3f9fb5;
+.reader .char-tag--yui {
+  background: var(--char-yui);
   color: #fff;
 }
 

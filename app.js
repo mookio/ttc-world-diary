@@ -13,12 +13,14 @@ let manifest = { days: [] };
 let currentDay = null;
 
 const CHARACTERS = [
-  { id: "misaki", name: "美咲" },
-  { id: "ren", name: "渡邊蓮" },
-  { id: "yui", name: "結衣" },
+  { id: "misaki", name: "美咲", color: "#e0759a" },
+  { id: "ren", name: "渡邊蓮", color: "#65a854" },
+  { id: "yui", name: "結衣", color: "#3f9fb5" },
 ];
 
 const CHARACTERS_BY_NAME = [...CHARACTERS].sort((a, b) => b.name.length - a.name.length);
+
+const CHARACTER_NAME_PATTERN = CHARACTERS_BY_NAME.map((c) => c.name).join("|");
 
 const CHARACTER_SECTIONS = new Set(["角色內心動機", "說話", "告知對方重要的線索"]);
 
@@ -32,7 +34,20 @@ function isTimeHeading(text) {
 
 function resolveCharacter(name) {
   const trimmed = (name || "").trim();
-  return CHARACTERS_BY_NAME.find((c) => trimmed === c.name || trimmed.startsWith(c.name)) || null;
+  return CHARACTERS.find((c) => c.name === trimmed) || null;
+}
+
+function linesFromParagraph(node) {
+  const text = (node.textContent || "").replace(/\r/g, "").trim();
+  if (!text) {
+    return [];
+  }
+  const splitRe = new RegExp(`(?=${CHARACTER_NAME_PATTERN}[：:])`);
+  return text
+    .split(/\n+/)
+    .flatMap((block) => block.split(splitRe))
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 function charTag(character) {
@@ -50,31 +65,27 @@ function buildCharacterLine(line) {
 
   const row = document.createElement("p");
 
-  const clueMatch = trimmed.match(/^(.+?)\s*→\s*(.+?)[：:]([\s\S]*)$/);
-  if (clueMatch) {
-    const speaker = resolveCharacter(clueMatch[1]);
-    const target = resolveCharacter(clueMatch[2]);
-    if (speaker) {
+  for (const speaker of CHARACTERS_BY_NAME) {
+    const clueRe = new RegExp(`^${speaker.name}\\s*→\\s*(.+?)[：:]([\\s\\S]*)$`);
+    const clueMatch = trimmed.match(clueRe);
+    if (clueMatch) {
+      const target = resolveCharacter(clueMatch[1]);
       row.appendChild(charTag(speaker));
-    } else {
-      row.append(document.createTextNode(clueMatch[1].trim()));
+      row.appendChild(document.createTextNode(" → "));
+      if (target) {
+        row.appendChild(charTag(target));
+      } else {
+        row.append(document.createTextNode(clueMatch[1].trim()));
+      }
+      row.appendChild(document.createTextNode(`：${clueMatch[2]}`));
+      return row;
     }
-    row.appendChild(document.createTextNode(" → "));
-    if (target) {
-      row.appendChild(charTag(target));
-    } else {
-      row.append(document.createTextNode(clueMatch[2].trim()));
-    }
-    row.appendChild(document.createTextNode(`：${clueMatch[3]}`));
-    return row;
-  }
 
-  const talkMatch = trimmed.match(/^(.+?)[：:]([\s\S]*)$/);
-  if (talkMatch) {
-    const speaker = resolveCharacter(talkMatch[1]);
-    if (speaker) {
+    const talkRe = new RegExp(`^${speaker.name}[：:]([\\s\\S]*)$`);
+    const talkMatch = trimmed.match(talkRe);
+    if (talkMatch) {
       row.appendChild(charTag(speaker));
-      row.appendChild(document.createTextNode(`：${talkMatch[2]}`));
+      row.appendChild(document.createTextNode(`：${talkMatch[1]}`));
       return row;
     }
   }
@@ -93,10 +104,7 @@ function colorCharacterLines(doc) {
     while (node && node.tagName !== "H2" && node.tagName !== "H3") {
       const next = node.nextElementSibling;
       if (node.tagName === "P") {
-        const lines = (node.innerHTML || "")
-          .split(/<br\s*\/?>/i)
-          .map((chunk) => chunk.replace(/<[^>]+>/g, "").trim())
-          .filter(Boolean);
+        const lines = linesFromParagraph(node);
         const parent = node.parentNode;
         for (const line of lines) {
           const row = buildCharacterLine(line);
