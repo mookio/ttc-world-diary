@@ -21,6 +21,8 @@ const CHARACTERS = [
 const CHARACTERS_BY_NAME = [...CHARACTERS].sort((a, b) => b.name.length - a.name.length);
 
 const CHARACTER_NAME_PATTERN = CHARACTERS_BY_NAME.map((c) => c.name).join("|");
+const CHARACTER_LINE_START_RE = new RegExp(`^(?:${CHARACTER_NAME_PATTERN})[：:]`);
+const CHARACTER_LINE_SPLIT_RE = new RegExp(`(?=(?:${CHARACTER_NAME_PATTERN})[：:])`);
 
 const CHARACTER_SECTIONS = new Set(["角色內心動機", "說話", "告知對方重要的線索"]);
 
@@ -37,15 +39,45 @@ function resolveCharacter(name) {
   return CHARACTERS.find((c) => c.name === trimmed) || null;
 }
 
-function linesFromParagraph(node) {
-  const text = (node.textContent || "").replace(/\r/g, "").trim();
-  if (!text) {
-    return [];
+function prepareMarkdown(md) {
+  const lines = md.split("\n");
+  const out = [];
+  let inSection = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^### /.test(trimmed)) {
+      const title = trimmed.slice(4).trim();
+      inSection = CHARACTER_SECTIONS.has(title);
+      out.push(line);
+      continue;
+    }
+    if (/^## /.test(trimmed)) {
+      inSection = false;
+      out.push(line);
+      continue;
+    }
+    if (inSection && CHARACTER_LINE_START_RE.test(trimmed)) {
+      if (out.length > 0 && out[out.length - 1] !== "") {
+        out.push("");
+      }
+      out.push(line);
+      continue;
+    }
+    out.push(line);
   }
-  const splitRe = new RegExp(`(?=${CHARACTER_NAME_PATTERN}[：:])`);
-  return text
-    .split(/\n+/)
-    .flatMap((block) => block.split(splitRe))
+
+  return out.join("\n");
+}
+
+function linesFromParagraph(node) {
+  const html = node.innerHTML || "";
+  const chunks = /<br\s*\/?>/i.test(html)
+    ? html.split(/<br\s*\/?>/i).map((part) => part.replace(/<[^>]+>/g, "").trim())
+    : [(node.textContent || "").replace(/\r/g, "").trim()];
+
+  return chunks
+    .flatMap((text) => text.split(CHARACTER_LINE_SPLIT_RE))
     .map((line) => line.trim())
     .filter(Boolean);
 }
@@ -281,7 +313,7 @@ async function loadDay(day) {
     contentEl.innerHTML = `<p>無法載入 ${item.file}</p>`;
     return;
   }
-  const md = await res.text();
+  const md = prepareMarkdown(await res.text());
   const rawHtml = marked.parse(md);
   contentEl.innerHTML = enhanceHtml(rawHtml);
   window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
