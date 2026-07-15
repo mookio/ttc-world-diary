@@ -213,7 +213,7 @@ async function loadDay(dayNumber) {
 
   try {
     const file = dayFile(day);
-    const response = await fetch(file);
+    const response = await fetch(file, { cache: "no-store" });
     if (!response.ok) throw new Error(`無法載入 ${file}`);
     const markdown = await response.text();
     if (requestId !== state.requestId) return;
@@ -247,7 +247,7 @@ async function init() {
   updateEditionButtons();
 
   try {
-    const response = await fetch("manifest.json?v=novel-1");
+    const response = await fetch("manifest.json", { cache: "no-store" });
     if (!response.ok) throw new Error("找不到世界日記目錄。");
     const manifest = await response.json();
     state.days = Array.isArray(manifest.days) ? manifest.days : [];
