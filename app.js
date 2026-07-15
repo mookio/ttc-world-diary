@@ -128,6 +128,9 @@ function renderMarkdown(markdown) {
   }
 
   for (const heading of template.content.querySelectorAll("h3")) {
+    if (/^\d{1,2}:\d{2}(?:[–-]\d{1,2}:\d{2})?｜/.test(heading.textContent.trim())) {
+      heading.classList.add("scene-heading");
+    }
     if (!characterSections.has(heading.textContent.trim())) continue;
     heading.classList.add("character-section-title");
     let sibling = heading.nextElementSibling;
@@ -178,7 +181,7 @@ function showMessage(message, isError = false) {
 }
 
 function editionLabel() {
-  return state.edition === "original" ? "原文版" : "小說版";
+  return state.edition === "original" ? "原始版" : "小說版";
 }
 
 function updateEditionButtons(day = null) {
@@ -200,6 +203,7 @@ async function loadDay(dayNumber) {
   const requestId = ++state.requestId;
   state.activeDay = day.day;
   if (state.edition === "novel" && !day.novel_file) state.edition = "original";
+  dom.content.classList.toggle("is-novel-edition", state.edition === "novel");
   updateEditionButtons(day);
   setSelectedDay(day.day);
   highlightDay(day.day);

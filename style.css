@@ -177,6 +177,7 @@ button { font: inherit; }
 .reader h1 { margin: 0 0 1.5rem; font-size: clamp(1.7rem, 4vw, 2.25rem); line-height: 1.35; }
 .reader h2 { margin: 2.2rem 0 0.9rem; font-family: var(--sans); font-size: 1rem; color: var(--accent); }
 .reader h3 { margin: 1.25rem 0 0.55rem; font-family: var(--sans); font-size: 0.8rem; color: var(--faint); letter-spacing: 0.08em; }
+.reader.is-novel-edition .scene-heading { display: none; }
 .reader p { margin: 0 0 1.1em; }
 .reader hr { margin: 2rem 0; border: 0; border-top: 1px solid var(--line); }
 
